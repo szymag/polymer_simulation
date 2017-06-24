@@ -38,6 +38,8 @@ class Network:
 
 
 class InitialConfig:
+    moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+
     def __init__(self, segment_count):
         self.segment_count = segment_count
         self.network = Network(segment_count)
@@ -82,18 +84,11 @@ class InitialConfig:
         pass
 
     def generate_position(self, present_position):
-        where_to_go = rd.randrange(4)
-        if where_to_go == 0:
-            segment_place = [present_position[0] - 1, present_position[1]]
-        elif where_to_go == 1:
-            segment_place = [present_position[0], (present_position[1] + 1) % self.segment_count]
-        elif where_to_go == 2:
-            segment_place = [(present_position[0] + 1) % self.segment_count, present_position[1]]
-        elif where_to_go == 3:
-            segment_place = [present_position[0], present_position[1] - 1]
-        else:
-            raise ValueError
-        return segment_place
+        move = self.moves[rd.randrange(len(self.moves))]
+        position_after_move = map(sum, zip(present_position, move))
+
+        fit_to_network_size = lambda x: x % self.segment_count
+        return list(map(fit_to_network_size, position_after_move))
 
     def where_put_segment(self):
         return [rd.randrange(self.segment_count), rd.randrange(self.segment_count)]

@@ -82,7 +82,7 @@ class InitialConfig:
         pass
 
     def generate_position(self, present_position):
-        where_to_go = rd.randint(0, 3)
+        where_to_go = rd.randrange(4)
         if where_to_go == 0:
             segment_place = [present_position[0] - 1, present_position[1]]
         elif where_to_go == 1:
@@ -96,7 +96,7 @@ class InitialConfig:
         return segment_place
 
     def where_put_segment(self):
-        return [rd.randint(0, self.segment_count - 1), rd.randint(0, self.segment_count - 1)]
+        return [rd.randrange(self.segment_count), rd.randrange(self.segment_count)]
 
 
 class Algorithm:

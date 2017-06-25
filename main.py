@@ -1,3 +1,4 @@
+import enum
 import numpy as np
 import random as rd
 import pygame
@@ -5,27 +6,29 @@ import pygame.locals
 import sys
 import time
 
+class State(enum.Enum):
+    inactive = 0
+    active = 1
 
 class Network:
     def __init__(self, size):
         self.network = np.zeros((size, size))
         self.size = size
 
-    def add_segment(self, coord_1, coord_2):
-        self.network[coord_1, coord_2] = 1
+    def add(self, segment):
+        self.network[segment[0], segment[1]] = State.active.value
 
-    def del_segment(self, coord_1, coord_2):
-        self.network[coord_1, coord_2] = 0
+    def remove(self, segment):
+        self.network[segment[0], segment[1]] = State.inactive.value
 
-    def check_if_segment(self, coord_1, coord_2):
-        return self.network[coord_1, coord_2] == 1
+    def check_if_segment(self, segment):
+        return self.network[segment[0], segment[1]] == State.active.value
 
-    def check_if_trap(self, coord_1, coord_2):
+    def is_stuck(self, segment):
         # The segment will be surrounded by another segment if True
-        return self.check_if_segment(coord_1, coord_2 - 1) and \
-                self.check_if_segment(coord_1 - 1, coord_2) and \
-                self.check_if_segment((coord_1 + 1) % self.size, coord_2) and \
-                self.check_if_segment(coord_1, (coord_2 + 1) % self.size)
+        neighbours = [list(map(lambda x: x % self.size, map(sum,
+            zip(segment, move)))) for move in InitialConfig.moves]
+        return all(map(self.check_if_segment, neighbours))
 
     def return_network(self):
         return self.network
@@ -40,38 +43,34 @@ class InitialConfig:
 
     def create_config(self):
         failed_count = 0
-        history = []
-        where_put_segment = self.where_put_segment()
-        history.append(where_put_segment)
-        self.network.add_segment(where_put_segment[0], where_put_segment[1])
+        segment = self.where_put_segment()
+        history = [segment]
+        self.network.add(segment)
         while len(history) != self.segment_count:
-            if self.network.check_if_trap(history[-1][0], history[-1][1]):
+            if self.network.is_stuck(history[-1]):
                 failed_count += 1
                 if failed_count < 10:
                     try:
                         for i in range(5):
-                            self.network.del_segment(history[-1][0], history[-1][1])
+                            self.network.remove(history[-1])
                             del history[-1]
                             if len(history) == 0:
-                                where_put_segment = self.where_put_segment()
-                                history.append(where_put_segment)
+                                segment = self.where_put_segment()
+                                history.append(segment)
                     except:
-                        where_put_segment = self.where_put_segment()
-                        history.append(where_put_segment)
-                        self.network.add_segment(where_put_segment[0], where_put_segment[1])
+                        segment = self.where_put_segment()
+                        history.append(segment)
+                        self.network.add(segment)
                 else:
                     failed_count = 0
-                    history = []
-                    where_put_segment = self.where_put_segment()
-                    history.append(where_put_segment)
-                    self.network.add_segment(where_put_segment[0], where_put_segment[1])
+                    segment = self.where_put_segment()
+                    history = [segment]
+                    self.network.add(segment)
             else:
-                where_put_segment = self.generate_position(history[-1])
-                if not self.network.check_if_segment(where_put_segment[0], where_put_segment[1]):
-                    self.network.add_segment(where_put_segment[0], where_put_segment[1])
-                    history.append(where_put_segment)
-                else:
-                    pass
+                segment = self.generate_position(history[-1])
+                if not self.network.check_if_segment(segment):
+                    self.network.add(segment)
+                    history.append(segment)
         return np.array(history)
 
     def energy(self):

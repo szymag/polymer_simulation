@@ -21,14 +21,14 @@ class Network:
     def remove(self, segment):
         self.network[segment[0], segment[1]] = State.inactive.value
 
-    def check_if_segment(self, segment):
+    def is_active(self, segment):
         return self.network[segment[0], segment[1]] == State.active.value
 
     def is_stuck(self, segment):
         # The segment will be surrounded by another segment if True
         neighbours = [list(map(lambda x: x % self.size, map(sum,
             zip(segment, move)))) for move in InitialConfig.moves]
-        return all(map(self.check_if_segment, neighbours))
+        return all(map(self.is_active, neighbours))
 
     def return_network(self):
         return self.network
@@ -40,50 +40,57 @@ class InitialConfig:
     def __init__(self, segment_count):
         self.segment_count = segment_count
         self.network = Network(segment_count)
+        self.failed_count = 0
+        self.reset()
+
+    def reset(self):
+        segment = self.random_segment()
+        self.history = [segment]
+        self.network.add(segment)
+
+    def backtrack(self):
+        steps = min(5, len(self.history))
+
+        for previous_segment in self.history[-steps:]:
+            self.network.remove(previous_segment)
+        del self.history[-steps:]
+
+        if len(self.history) == 0:
+            self.reset()
+
+    def step(self):
+        try:
+            segment = rd.choice(self.get_next_segments())
+            self.network.add(segment)
+            self.history.append(segment)
+            return True
+        except IndexError:
+            return False
 
     def create_config(self):
-        failed_count = 0
-        segment = self.where_put_segment()
-        history = [segment]
-        self.network.add(segment)
-        while len(history) != self.segment_count:
-            if self.network.is_stuck(history[-1]):
-                failed_count += 1
-                if failed_count < 10:
-                    try:
-                        for i in range(5):
-                            self.network.remove(history[-1])
-                            del history[-1]
-                            if len(history) == 0:
-                                segment = self.where_put_segment()
-                                history.append(segment)
-                    except:
-                        segment = self.where_put_segment()
-                        history.append(segment)
-                        self.network.add(segment)
+        while len(self.history) != self.segment_count:
+            success = self.step()
+            if not success:
+                self.failed_count += 1
+
+                if self.failed_count < 10:
+                    self.backtrack()
                 else:
-                    failed_count = 0
-                    segment = self.where_put_segment()
-                    history = [segment]
-                    self.network.add(segment)
-            else:
-                segment = self.generate_position(history[-1])
-                if not self.network.check_if_segment(segment):
-                    self.network.add(segment)
-                    history.append(segment)
-        return np.array(history)
+                    self.failed_count = 0
+                    self.reset()
+
+        return np.array(self.history)
 
     def energy(self):
         pass
 
-    def generate_position(self, present_position):
-        move = self.moves[rd.randrange(len(self.moves))]
-        position_after_move = map(sum, zip(present_position, move))
-
+    def get_next_segments(self):
         fit_to_network_size = lambda x: x % self.segment_count
-        return list(map(fit_to_network_size, position_after_move))
+        possible_positions = [list(map(fit_to_network_size, map(sum, zip(self.history[-1], move)))) for move in self.moves]
 
-    def where_put_segment(self):
+        return list(filter(lambda x: not self.network.is_active(x), possible_positions))
+
+    def random_segment(self):
         return [rd.randrange(self.segment_count), rd.randrange(self.segment_count)]
 
 

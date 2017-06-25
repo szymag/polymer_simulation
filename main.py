@@ -18,20 +18,14 @@ class Network:
         self.network[coord_1, coord_2] = 0
 
     def check_if_segment(self, coord_1, coord_2):
-        if self.network[coord_1, coord_2] == 1:
-            return True
-        else:
-            return False
+        return self.network[coord_1, coord_2] == 1
 
     def check_if_trap(self, coord_1, coord_2):
         # The segment will be surrounded by another segment if True
-        if self.check_if_segment(coord_1, coord_2 - 1) and \
+        return self.check_if_segment(coord_1, coord_2 - 1) and \
                 self.check_if_segment(coord_1 - 1, coord_2) and \
                 self.check_if_segment((coord_1 + 1) % self.size, coord_2) and \
-                self.check_if_segment(coord_1, (coord_2 + 1) % self.size):
-            return True
-        else:
-            return False
+                self.check_if_segment(coord_1, (coord_2 + 1) % self.size)
 
     def return_network(self):
         return self.network

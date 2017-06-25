@@ -40,45 +40,53 @@ class InitialConfig:
     def __init__(self, segment_count):
         self.segment_count = segment_count
         self.network = Network(segment_count)
+        self.failed_count = 0
+        self.reset()
+
+    def reset(self):
+        segment = self.where_put_segment()
+        self.history = [segment]
+        self.network.add(segment)
+
+    def backtrack(self):
+        steps = min(5, len(self.history))
+
+        for previous_segment in self.history[-steps:]:
+            self.network.remove(previous_segment)
+        del self.history[-steps:]
+
+        if len(self.history) == 0:
+            self.reset()
+
+    def step(self):
+        segment = self.get_next_segment()
+        while self.network.check_if_segment(segment):
+            segment = self.get_next_segment()
+
+        self.network.add(segment)
+        self.history.append(segment)
 
     def create_config(self):
-        failed_count = 0
-        segment = self.where_put_segment()
-        history = [segment]
-        self.network.add(segment)
-        while len(history) != self.segment_count:
-            if self.network.is_stuck(history[-1]):
-                failed_count += 1
-                if failed_count < 10:
-                    try:
-                        for i in range(5):
-                            self.network.remove(history[-1])
-                            del history[-1]
-                            if len(history) == 0:
-                                segment = self.where_put_segment()
-                                history.append(segment)
-                    except:
-                        segment = self.where_put_segment()
-                        history.append(segment)
-                        self.network.add(segment)
+        while len(self.history) != self.segment_count:
+            if self.network.is_stuck(self.history[-1]):
+                self.failed_count += 1
+
+                if self.failed_count < 10:
+                    self.backtrack()
                 else:
-                    failed_count = 0
-                    segment = self.where_put_segment()
-                    history = [segment]
-                    self.network.add(segment)
+                    self.failed_count = 0
+                    self.reset()
             else:
-                segment = self.generate_position(history[-1])
-                if not self.network.check_if_segment(segment):
-                    self.network.add(segment)
-                    history.append(segment)
-        return np.array(history)
+                self.step()
+
+        return np.array(self.history)
 
     def energy(self):
         pass
 
-    def generate_position(self, present_position):
+    def get_next_segment(self):
         move = self.moves[rd.randrange(len(self.moves))]
-        position_after_move = map(sum, zip(present_position, move))
+        position_after_move = map(sum, zip(self.history[-1], move))
 
         fit_to_network_size = lambda x: x % self.segment_count
         return list(map(fit_to_network_size, position_after_move))

@@ -97,25 +97,28 @@ class InitialConfig:
 class Algorithm:
     def __init__(self, segment_count):
         self.segment_count = segment_count
-        self.config = InitialConfig(segment_count).create_config()
-        self.energy = 0
+        self.init = InitialConfig(segment_count)
+        self.config = self.init.create_config()
+        self.tmp =self.config
+        self.energy = self.init.energy()
 
     def movement(self, step_number):
         for i in range(step_number):
-            choose_segment = rd.randint(0, self.segment_count)
-            if choose_segment == 0 or choose_segment == self.segment_count:
-                self.ending_movement(choose_segment)
+            segment = rd.randint(2, self.segment_count-2)
+            if segment == 0 or segment == self.segment_count:
+                self.ending_movement(segment)
             else:
-                self.config[choose_segment] = self.knee_movement(choose_segment)
+                self.knee_movement(segment)
+
         return self.config
 
     def knee_movement(self, segment):
-        new_place = self.config[segment - 1] + self.config[(segment + 1) %
-                                                           self.segment_count] - self.config[segment]
-        if new_place in self.config:
-            return self.config[segment]
+        new_place = (self.config[segment - 1] + self.config[(segment + 1) %
+                    self.segment_count] - self.config[segment] + [self.segment_count, self.segment_count])%self.segment_count
+        if np.equal(new_place, self.config).all(axis=1).any():
+            pass
         else:
-            return new_place
+            self.config[segment] = new_place
 
     def ending_movement(self, segment):
         choose_movement_type = rd.randint(0, 1)

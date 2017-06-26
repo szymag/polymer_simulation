@@ -82,12 +82,16 @@ class InitialConfig:
         return np.array(self.history)
 
     def energy(self):
-        pass
+        tmp = self.network.network
+        return np.sum(tmp * np.roll(tmp, 1, axis=0) +\
+               tmp * np.roll(tmp, -1, axis=0) +\
+               tmp * np.transpose(np.roll(np.transpose(tmp), 1, axis=0)) +\
+               tmp * np.transpose(np.roll(np.transpose(tmp), -1, axis=0))) / 2
 
     def get_next_segments(self):
         fit_to_network_size = lambda x: x % self.segment_count
-        possible_positions = [list(map(fit_to_network_size, map(sum, zip(self.history[-1], move)))) for move in self.moves]
-
+        possible_positions = [list(map(fit_to_network_size,
+                                       map(sum, zip(self.history[-1], move)))) for move in self.moves]
         return list(filter(lambda x: not self.network.is_active(x), possible_positions))
 
     def random_segment(self):
@@ -182,18 +186,27 @@ class Algorithm:
                     self.config[-1] = self.config[1] + [1, 0]
 
     def energy_change(self):
-        pass
+       # print(self.config)
+        tmp_network = Network(self.segment_count)
+        for i in self.config:
+            tmp_network.add(i)
+        net = tmp_network.network
+        return np.sum(net * np.roll(net, 1, axis=0) + \
+                      net * np.roll(net, -1, axis=0) + \
+                      net * np.transpose(np.roll(np.transpose(net), 1, axis=0)) + \
+                      net * np.transpose(np.roll(np.transpose(net), -1, axis=0))) / 2
 
 
 if __name__ == '__main__':
     pygame.init()
-    parts_count = 30
-    # q = InitialConfig(parts_count)
+    parts_count = 50
+    q = InitialConfig(parts_count)
     q = Algorithm(parts_count)
-    positions = q.movement(1000)
+    positions = q.movement(3000)
+    #positions = q.create_config()
     counts = {}
+    #print(q.energy())
     print(positions)
-    #print(positions)
     #print("=" * 30)
 
     for pos in positions:

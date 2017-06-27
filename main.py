@@ -211,7 +211,7 @@ if __name__ == '__main__':
     assert display_size[0] == display_size[1]
     display = pygame.display.set_mode(display_size)
 
-    part_size = display_size[0] / parts_count
+    part_size = display_size[0] // parts_count
     get_rect_coordinates = lambda pos: (pos[0] * part_size, pos[1] * part_size, part_size, part_size)
     get_color = lambda x: (0, 200, 0) if x == 1 else (200, 0, 0)
 

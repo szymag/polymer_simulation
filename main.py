@@ -137,7 +137,7 @@ class Algorithm:
                 self.config[segment] = new_place
                 self.energy -= delta_energy
             print(self.radius())
-        return self.config
+            yield self.config
 
     def knee_movement(self, segment):
         new_place = (self.config[segment - 1] + self.config[(segment + 1) %
@@ -189,46 +189,58 @@ class Algorithm:
         return np.sum(np.sqrt((self.config[-1] - self.config[0])**2))
 
 
-if __name__ == '__main__':
-    pygame.init()
-
-    parts_count = 15
-    q = InitialConfig(parts_count)
-    q = Algorithm(parts_count)
-    positions = q.movement(3000)
-    #positions = q.create_config()
+def draw_configuration(display, positions, part_size):
     counts = {}
-    #print(q.energy())
-    #print(positions)
-    #print("=" * 30)
+
+    get_rect_coordinates = lambda pos: (pos[0] * part_size, pos[1] * part_size, part_size, part_size)
+    get_color = lambda x: (0, 200, 0) if x == 1 else (200, 0, 0)
 
     for pos in positions:
         # assert (0 <= pos[0] < parts_count) and (0 <= pos[1] < parts_count)
         a = tuple(pos)
         counts[a] = counts.get(a, 0) + 1
 
-    display_size = (500, 500)
-    assert display_size[0] == display_size[1]
-    display = pygame.display.set_mode(display_size)
-
-    part_size = display_size[0] // parts_count
-    get_rect_coordinates = lambda pos: (pos[0] * part_size, pos[1] * part_size, part_size, part_size)
-    get_color = lambda x: (0, 200, 0) if x == 1 else (200, 0, 0)
-
     display.fill((255, 255, 255))
 
     for pos, count in counts.items():
-        #print("{}: {}".format(pos, count))
+        coord = get_rect_coordinates(pos)
         pygame.draw.rect(
             display,
             get_color(count),
             get_rect_coordinates(pos),
             0)
-        pygame.display.update()
+    pygame.display.update()
+
+
+if __name__ == '__main__':
+    pygame.init()
+
+    parts_count = 15
+    part_size = 30
+    q = InitialConfig(parts_count)
+    q = Algorithm(parts_count)
+    # positions = q.movement(3000)
+    #positions = q.create_config()
+    #print(q.energy())
+    #print(positions)
+    #print("=" * 30)
+
+
+    display_size = (part_size * parts_count, part_size * parts_count)
+    assert display_size[0] == display_size[1]
+    display = pygame.display.set_mode(display_size)
+
+    positions = q.movement(3000)
+    last_position = next(positions)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.locals.QUIT:
                 pygame.quit()
                 sys.exit()
-        time.sleep(0.2)
+        draw_configuration(display, last_position, part_size)
+        try:
+            last = next(positions)
+        except StopIteration:
+            pass
+        time.sleep(0.01)

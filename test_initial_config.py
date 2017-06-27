@@ -14,7 +14,7 @@ def test_create_confg():
 def test_movement():
     for i in range(100):
         q1 = Algorithm(50)
-        config = q1.movement(1000)
+        config = list(q1.movement(1000))[-1]
         for segment in range(1, len(config)):
             if not (np.sum(abs(config[segment] - config[segment - 1]))  == 1 or
                         (np.sum(abs(config[segment] - config[segment - 1])) == q1.segment_count-1)):

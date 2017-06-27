@@ -33,6 +33,13 @@ class Network:
     def return_network(self):
         return self.network
 
+    def energy(self):
+        total_en = 4 * self.size
+        tmp = self.return_network()
+        return total_en - np.sum(tmp * np.roll(tmp, 1, axis=0) +\
+               tmp * np.roll(tmp, -1, axis=0) +\
+               tmp * np.transpose(np.roll(np.transpose(tmp), 1, axis=0)) +\
+               tmp * np.transpose(np.roll(np.transpose(tmp), -1, axis=0)))
 
 class InitialConfig:
     moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
@@ -81,13 +88,6 @@ class InitialConfig:
 
         return np.array(self.history)
 
-    def energy(self):
-        tmp = self.network.network
-        return np.sum(tmp * np.roll(tmp, 1, axis=0) +\
-               tmp * np.roll(tmp, -1, axis=0) +\
-               tmp * np.transpose(np.roll(np.transpose(tmp), 1, axis=0)) +\
-               tmp * np.transpose(np.roll(np.transpose(tmp), -1, axis=0))) / 2
-
     def get_next_segments(self):
         fit_to_network_size = lambda x: x % self.segment_count
         possible_positions = [list(map(fit_to_network_size,
@@ -97,6 +97,8 @@ class InitialConfig:
     def random_segment(self):
         return [rd.randrange(self.segment_count), rd.randrange(self.segment_count)]
 
+    def energy(self):
+        return self.network.energy()
 
 class Algorithm:
     def __init__(self, segment_count):
@@ -108,105 +110,82 @@ class Algorithm:
 
     def movement(self, step_number):
         for i in range(step_number):
-            segment = rd.randint(2, self.segment_count-2)
-            if segment == 0 or segment == self.segment_count:
-                self.ending_movement(segment)
+            segment = rd.randint(0, self.segment_count-1)
+            new_place = self.config[segment]
+            if segment == 0 or segment == self.segment_count-1:
+                how_move = rd.randint(0,1)
+                if how_move == 1:
+                    new_place = self.ending_rotation(segment)
+                    delta_energy = self.energy_change(self.config[segment], new_place)
+                else:
+                    self.new_config = self.reptile(segment)
+                    delta_energy = self.energy_change(self.config[0], self.new_config[0]) +\
+                    self.energy_change(self.config[-1], self.new_config[-1])
             else:
-                self.knee_movement(segment)
-
+                new_place = self.knee_movement(segment)
+                delta_energy = self.energy_change(self.config[segment], new_place)
+            if True:
+                self.config[segment] = new_place
+                self.energy -= delta_energy
         return self.config
 
     def knee_movement(self, segment):
         new_place = (self.config[segment - 1] + self.config[(segment + 1) %
                     self.segment_count] - self.config[segment] + [self.segment_count, self.segment_count])%self.segment_count
-        if np.equal(new_place, self.config).all(axis=1).any():
-            pass
+        if not np.equal(new_place, self.config).all(axis=1).any():
+            return new_place
         else:
-            self.config[segment] = new_place
+            return self.config[segment]
 
-    def ending_movement(self, segment):
-        choose_movement_type = rd.randint(0, 1)
-        if choose_movement_type == 0:
-            return self.reptile(segment)
-        else:
-            return self.ending_rotation(segment)
-
-    def reptile(self, segment): # modify newly created element
+    def reptile(self, segment):
         if segment == 0:
-            self.apply_movement_for_reptile(-1, -1)
+            return self.apply_movement_for_reptile(0, -1, -1)
         else:
-            self.apply_movement_for_reptile(0, 1)
+            return self.apply_movement_for_reptile(-1, 1, 0)
 
-    def apply_movement_for_reptile(self, segment, roll):
-        direction = rd.randint(0, 3)
-        if direction == 0:
-            if self.config[segment] + [0, 1] not in self.config:
-                self.config = np.roll(self.config, roll, axis=0)
-                self.config[segment] += [0, 1]
-        elif direction == 1:
-            if self.config[segment] + [1, 0] not in self.config:
-                self.config = np.roll(self.config, roll, axis=0)
-                self.config[segment] += [1, 0]
-        elif direction == 2:
-            if self.config[segment] + [-1, 0] not in self.config:
-                self.config = np.roll(self.config, roll, axis=0)
-                self.config[segment] += [-1, 0]
-        elif direction == 3:
-            if self.config[segment] + [0, -1] not in self.config:
-                self.config = np.roll(self.config, roll, axis=0)
-                self.config[segment] += [0, -1]
+    def apply_movement_for_reptile(self, segment, roll, to_move):
+        #print(np.roll(self.config, roll, axis=0))
+
+        new_config = np.roll(self.config, roll, axis=0)
+        new_config[segment] = self.config[to_move]
+
+        if not np.equal(new_config[segment], self.config).all(axis=1).any():
+            return new_config
+        else:
+            return self.config
 
     def ending_rotation(self, segment):
-        direction = rd.randint(0, 3)
+        new_place = self.config[segment]
         if segment == 0:
-            if direction == 0:
-                if self.config[1] + [0, 1] not in self.config:
-                    self.config[0] = self.config[1] + [0, 1]
-            elif direction == 1:
-                if self.config[1] + [0, -1] not in self.config:
-                    self.config[0] = self.config[1] + [0, -1]
-            elif direction == 2:
-                if self.config[1] + [-1, 0] not in self.config:
-                    self.config[0] = self.config[1] + [-1, 0]
-            elif direction == 3:
-                if self.config[1] + [1, 0] not in self.config:
-                    self.config[0] = self.config[1] + [1, 0]
+            # we check if position is OK for previous segment
+            index = 1
         else:
-            if direction == 0:
-                if self.config[-2] + [0, 1] not in self.config:
-                    self.config[-1] = self.config[1] + [0, 1]
-            elif direction == 1:
-                if self.config[-2] + [0, -1] not in self.config:
-                    self.config[-1] = self.config[1] + [0, -1]
-            elif direction == 2:
-                if self.config[-2] + [-1, 0] not in self.config:
-                    self.config[-1] = self.config[1] + [-1, 0]
-            elif direction == 3:
-                if self.config[-2] + [1, 0] not in self.config:
-                    self.config[-1] = self.config[1] + [1, 0]
+            index = -2
+        move = rd.choice([[0, 1], [0, -1], [-1, 0], [1, 0]])
+        if not np.equal((self.config[index] + move) % self.segment_count, self.config).all(axis=1).any():
+            new_place = (self.config[index] + move) % self.segment_count
 
-    def energy_change(self):
-       # print(self.config)
-        tmp_network = Network(self.segment_count)
-        for i in self.config:
-            tmp_network.add(i)
-        net = tmp_network.network
-        return np.sum(net * np.roll(net, 1, axis=0) + \
-                      net * np.roll(net, -1, axis=0) + \
-                      net * np.transpose(np.roll(np.transpose(net), 1, axis=0)) + \
-                      net * np.transpose(np.roll(np.transpose(net), -1, axis=0))) / 2
+        return new_place
+
+    def energy_change(self, before, after):
+        neighbour = [[0, 1], [0, -1], [-1, 0], [1, 0]]
+        e_old = len([(before+i)% self.segment_count for i in neighbour
+                    if not np.equal(np.array((before+i)% self.segment_count), self.config).all(axis=1).any()])
+        e_new = len([(after+i)% self.segment_count for i in neighbour
+                    if not np.equal(np.array((after+i)% self.segment_count), self.config).all(axis=1).any()])
+        return e_new - e_old
 
 
 if __name__ == '__main__':
     pygame.init()
-    parts_count = 50
+    parts_count = 15
     q = InitialConfig(parts_count)
     q = Algorithm(parts_count)
     positions = q.movement(3000)
     #positions = q.create_config()
     counts = {}
     #print(q.energy())
-    print(positions)
+    #print(positions)
     #print("=" * 30)
 
     for pos in positions:

@@ -7,7 +7,7 @@ def test_create_confg():
         config = q1.create_config()
         for segment in range(1, len(config)):
             assert (np.sum(abs(config[segment] - config[segment - 1]))  == 1 or
-                        (np.sum(abs(config[segment] - config[segment - 1])) == q1.segment_count))
+                        (np.sum(abs(config[segment] - config[segment - 1])) == q1.segment_count-1))
 
 
 

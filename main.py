@@ -88,7 +88,6 @@ class InitialConfig:
 
         return np.array(self.history)
 
-<<<<<<< HEAD
     def energy(self):
         tmp = self.network.network
         print(tmp)
@@ -97,8 +96,7 @@ class InitialConfig:
                tmp * np.transpose(np.roll(np.transpose(tmp), 1, axis=0)) +\
                tmp * np.transpose(np.roll(np.transpose(tmp), -1, axis=0)))
 
-=======
->>>>>>> f96caa174104106a0909b9267e8bea1712644f06
+
     def get_next_segments(self):
         fit_to_network_size = lambda x: x % self.segment_count
         possible_positions = [list(map(fit_to_network_size,
@@ -138,6 +136,7 @@ class Algorithm:
             if True:
                 self.config[segment] = new_place
                 self.energy -= delta_energy
+            print(self.radius())
         return self.config
 
     def knee_movement(self, segment):
@@ -185,6 +184,9 @@ class Algorithm:
         e_new = len([(after+i)% self.segment_count for i in neighbour
                     if not np.equal(np.array((after+i)% self.segment_count), self.config).all(axis=1).any()])
         return e_new - e_old
+
+    def radius(self):
+        return np.sum(np.sqrt((self.config[-1] - self.config[0])**2))
 
 
 if __name__ == '__main__':

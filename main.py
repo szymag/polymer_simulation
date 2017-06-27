@@ -136,7 +136,7 @@ class Algorithm:
                 delta_energy = self.energy_change(self.config[segment], new_place)
             self.config[segment] = new_place
             self.energy -= delta_energy
-            print(self.radius())
+            print("\rCurrent radius: {:>5}".format(self.radius()), end='')
             yield self.config
 
     def knee_movement(self, segment):

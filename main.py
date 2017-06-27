@@ -6,6 +6,7 @@ import pygame.locals
 import sys
 import time
 
+
 class State(enum.Enum):
     inactive = 0
     active = 1
@@ -118,8 +119,8 @@ class Algorithm:
         self.energy = self.init.energy()
 
     def movement(self, step_number):
-        for i in range(step_number):
-            segment = rd.randint(0, self.segment_count-1)
+        for _ in range(step_number):
+            segment = rd.randrange(self.segment_count)
             new_place = self.config[segment]
             if segment == 0 or segment == self.segment_count-1:
                 how_move = rd.randint(0,1)
@@ -133,9 +134,8 @@ class Algorithm:
             else:
                 new_place = self.knee_movement(segment)
                 delta_energy = self.energy_change(self.config[segment], new_place)
-            if True:
-                self.config[segment] = new_place
-                self.energy -= delta_energy
+            self.config[segment] = new_place
+            self.energy -= delta_energy
             print(self.radius())
             yield self.config
 
@@ -190,17 +190,19 @@ class Algorithm:
 
 
 def draw_configuration(display, positions, part_size):
-    counts = {}
+    background_color = (255, 255, 255)
+    valid_position_color = (0, 200, 0)
+    invalid_position_color = (200, 0, 0)
+    border_weight = 0
 
     get_rect_coordinates = lambda pos: (pos[0] * part_size, pos[1] * part_size, part_size, part_size)
-    get_color = lambda x: (0, 200, 0) if x == 1 else (200, 0, 0)
+    get_color = lambda x: valid_position_color if x == 1 else invalid_position_color
 
-    for pos in positions:
-        # assert (0 <= pos[0] < parts_count) and (0 <= pos[1] < parts_count)
-        a = tuple(pos)
-        counts[a] = counts.get(a, 0) + 1
+    counts = {}
+    for position in map(tuple, positions):
+        counts[position] = counts.get(position, 0) + 1
 
-    display.fill((255, 255, 255))
+    display.fill(background_color)
 
     for pos, count in counts.items():
         coord = get_rect_coordinates(pos)
@@ -208,29 +210,25 @@ def draw_configuration(display, positions, part_size):
             display,
             get_color(count),
             get_rect_coordinates(pos),
-            0)
+            border_weight)
+
     pygame.display.update()
 
 
 if __name__ == '__main__':
-    pygame.init()
-
     parts_count = 15
     part_size = 30
-    q = InitialConfig(parts_count)
-    q = Algorithm(parts_count)
-    # positions = q.movement(3000)
-    #positions = q.create_config()
-    #print(q.energy())
-    #print(positions)
-    #print("=" * 30)
+    moves_count = 3000
+    sleep_delay_seconds = 0.01
 
+    pygame.init()
+
+    algorithm = Algorithm(parts_count)
 
     display_size = (part_size * parts_count, part_size * parts_count)
-    assert display_size[0] == display_size[1]
     display = pygame.display.set_mode(display_size)
 
-    positions = q.movement(3000)
+    positions = algorithm.movement(moves_count)
     last_position = next(positions)
 
     while True:
@@ -243,4 +241,4 @@ if __name__ == '__main__':
             last = next(positions)
         except StopIteration:
             pass
-        time.sleep(0.01)
+        time.sleep(sleep_delay_seconds)

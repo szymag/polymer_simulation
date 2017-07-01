@@ -5,7 +5,7 @@ import pygame
 import pygame.locals
 import sys
 import time
-
+from math import sqrt
 
 class State(enum.Enum):
     inactive = 0
@@ -186,7 +186,7 @@ class Algorithm:
         return e_new - e_old
 
     def radius(self):
-        return np.sum(np.sqrt((self.config[-1] - self.config[0])**2))
+        return sqrt(np.sum(((self.config[-1] - self.config[0]) % self.segment_count)**2))
 
 
 def draw_configuration(display, positions, part_size):
@@ -216,7 +216,7 @@ def draw_configuration(display, positions, part_size):
 
 
 if __name__ == '__main__':
-    parts_count = 15
+    parts_count = 25
     part_size = 30
     moves_count = 3000
     sleep_delay_seconds = 0.01

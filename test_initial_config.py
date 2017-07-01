@@ -23,5 +23,5 @@ def test_movement():
                 raise ValueError
 
 
-#test_create_confg()
+test_create_confg()
 test_movement()
